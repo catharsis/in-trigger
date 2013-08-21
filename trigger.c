@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include <signal.h>
 #include <limits.h>
 #include <sys/inotify.h>
@@ -74,7 +75,9 @@ void print_usage()
 int main (int argc, char **argv)
 {
 	int inotify_fd, wd;
-	const char * path = "./";
+	char *path;
+	path = getcwd(NULL, 0);
+	check(path, "Failed to get current working directory");
 	check(argc == 2, "Wrong number of arguments");
 	check_mem(command = strdup(argv[1]));
 	inotify_fd = open_inotify_fd();
