@@ -7,3 +7,7 @@ in-trigger: $(OBJS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $^ -o $@
+
+clean:
+	rm $(OBJS)
+	rm $(OUT)
