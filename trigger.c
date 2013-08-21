@@ -1,0 +1,81 @@
+#include <stdlib.h>
+#include <signal.h>
+#include <limits.h>
+#include <sys/inotify.h>
+#include "dbg.h"
+
+static int done;
+static const char * command = "sleep 5";
+static void sigint_handler(int signum)
+{
+	done = 1;
+}
+
+static uint32_t watch_mask = IN_ATTRIB | IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_MODIFY;
+static void add_watch(int fd, const char *pathname)
+{
+	int wd;
+	wd = inotify_add_watch(fd, pathname, watch_mask);
+	check(wd >= 0, "Unable to add watch for '%s'", pathname);
+	return;
+error:
+	exit(1);
+}
+
+static int open_inotify_fd()
+{
+	int fd;
+	fd = inotify_init();
+	check(fd >= 0, "Unable to initialize inotify instance!");
+	return fd;
+error:
+	exit(1);
+}
+
+static void process_events(int fd)
+{
+	struct inotify_event *event;
+	int ret, len, bufsize = sizeof(event) + NAME_MAX + 1;
+	char buffer[bufsize];
+	done = 0;
+	if (signal(SIGINT, sigint_handler) == SIG_IGN) {
+		/* reset signal disposition if previously ignored*/
+		signal (SIGINT, SIG_IGN);
+	}
+	while (!done) {
+		signal(SIGINT, SIG_DFL);
+		len = read(fd, buffer, bufsize);
+		signal(SIGINT, sigint_handler);
+		check(len >= 0, "Invalid read from inotify instance");
+		event = (struct inotify_event * ) buffer;
+		if ( event->len ) {
+			printf ("Trigger (%s): Executing command '%s'\n", event->name, command);
+			ret = system(command);
+			if (WIFSIGNALED(ret) &&
+					(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT)) {
+				printf("Trigger (%s): Interrupted by signal %d", event->name, WTERMSIG(ret));
+				break;
+			}
+			check((-1 != ret), "Failed to execute command");
+			printf ("Trigger (%s): done.\n", event->name);
+		}
+		else {
+			log_warn("Read event with no name length");
+		}
+	}
+error:
+	log_info("Terminating ...");
+}
+
+int main (int argc, char **argv)
+{
+	int inotify_fd, wd;
+	const char * path = "./";
+	inotify_fd = open_inotify_fd();
+	log_info("Inotify instance initialized ...");
+	add_watch(inotify_fd, path);
+	log_info("Watch added for '%s' ...", path);
+	process_events(inotify_fd);
+	log_info("Stopped watching '%s' ...", path);
+	return 0;
+}
