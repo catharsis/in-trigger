@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <sys/inotify.h>
 #include <fnmatch.h>
+#define NDEBUG
 #include "dbg.h"
 
 static int done;
@@ -34,6 +35,23 @@ error:
 	exit(1);
 }
 
+
+static int should_trigger(struct inotify_event *event)
+{
+	if ( event->len ) {
+		if (!fnmatch("*.[ch]", event->name, FNM_PATHNAME)) {
+			return 1;
+		}
+		else {
+			debug("Ignoring %s in accordance with pattern", event->name);
+		}
+	}
+	else {
+		debug("Ignoring event with no name length");
+	}
+	return 0;
+
+}
 static void process_events(int fd)
 {
 	struct inotify_event *event;
@@ -47,24 +65,17 @@ static void process_events(int fd)
 		signal(SIGINT, sigint_handler);
 		check(len >= 0, "Invalid read from inotify instance");
 		event = (struct inotify_event * ) buffer;
-		if ( event->len ) {
-			if (!fnmatch("*.[ch]", event->name, FNM_PATHNAME)) {
-				printf ("Trigger (%s): Executing command '%s'\n", event->name, command);
-				ret = system(command);
-				if (WIFSIGNALED(ret) &&
-						(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT)) {
-					printf("Trigger (%s): Interrupted by signal %d", event->name, WTERMSIG(ret));
-					break;
-				}
-				check((-1 != ret), "Failed to execute command");
-				printf ("Trigger (%s): done.\n", event->name);
+		if (should_trigger(event)) {
+			printf ("Trigger (%s): Executing command '%s'\n", event->name, command);
+			ret = system(command);
+			if (WIFSIGNALED(ret) &&
+					(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT)) {
+				printf("Trigger (%s): Interrupted by signal %d", event->name, WTERMSIG(ret));
+				break;
 			}
-			else {
-				debug("Ignoring %s in accordance with pattern", event->name);
-			}
-		}
-		else {
-			log_warn("Read event with no name length");
+			check((-1 != ret), "Failed to execute command");
+			printf ("Trigger (%s): done.\n", event->name);
+
 		}
 	}
 error:
