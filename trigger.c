@@ -5,7 +5,7 @@
 #include "dbg.h"
 
 static int done;
-static const char * command = "sleep 5";
+static const char * command;
 static void sigint_handler(int signum)
 {
 	done = 1;
@@ -67,10 +67,16 @@ error:
 	log_info("Terminating ...");
 }
 
+void print_usage()
+{
+	printf("Usage: blah blah\n");
+}
 int main (int argc, char **argv)
 {
 	int inotify_fd, wd;
 	const char * path = "./";
+	check(argc == 2, "Wrong number of arguments");
+	check_mem(command = strdup(argv[1]));
 	inotify_fd = open_inotify_fd();
 	log_info("Inotify instance initialized ...");
 	add_watch(inotify_fd, path);
@@ -78,4 +84,7 @@ int main (int argc, char **argv)
 	process_events(inotify_fd);
 	log_info("Stopped watching '%s' ...", path);
 	return 0;
+error:
+	print_usage();
+	return 1;
 }
