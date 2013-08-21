@@ -39,10 +39,7 @@ static void process_events(int fd)
 	int ret, len, bufsize = sizeof(event) + NAME_MAX + 1;
 	char buffer[bufsize];
 	done = 0;
-	if (signal(SIGINT, sigint_handler) == SIG_IGN) {
-		/* reset signal disposition if previously ignored*/
-		signal (SIGINT, SIG_IGN);
-	}
+	signal(SIGINT, sigint_handler);
 	while (!done) {
 		signal(SIGINT, SIG_DFL);
 		len = read(fd, buffer, bufsize);
