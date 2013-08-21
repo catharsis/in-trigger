@@ -1,0 +1,2 @@
+* Support recursive watches (track watch descriptors)
+* Support patterns/globbing (ex: *.{c,h})
