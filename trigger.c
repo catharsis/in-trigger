@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <limits.h>
 #include <sys/inotify.h>
+#include <fnmatch.h>
 #include "dbg.h"
 
 static int done;
@@ -47,15 +48,20 @@ static void process_events(int fd)
 		check(len >= 0, "Invalid read from inotify instance");
 		event = (struct inotify_event * ) buffer;
 		if ( event->len ) {
-			printf ("Trigger (%s): Executing command '%s'\n", event->name, command);
-			ret = system(command);
-			if (WIFSIGNALED(ret) &&
-					(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT)) {
-				printf("Trigger (%s): Interrupted by signal %d", event->name, WTERMSIG(ret));
-				break;
+			if (!fnmatch("*.[ch]", event->name, FNM_PATHNAME)) {
+				printf ("Trigger (%s): Executing command '%s'\n", event->name, command);
+				ret = system(command);
+				if (WIFSIGNALED(ret) &&
+						(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT)) {
+					printf("Trigger (%s): Interrupted by signal %d", event->name, WTERMSIG(ret));
+					break;
+				}
+				check((-1 != ret), "Failed to execute command");
+				printf ("Trigger (%s): done.\n", event->name);
 			}
-			check((-1 != ret), "Failed to execute command");
-			printf ("Trigger (%s): done.\n", event->name);
+			else {
+				debug("Ignoring %s in accordance with pattern", event->name);
+			}
 		}
 		else {
 			log_warn("Read event with no name length");
