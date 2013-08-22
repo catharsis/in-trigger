@@ -1,2 +1,3 @@
 * Support recursive watches (track watch descriptors)
-* Support patterns/globbing (ex: *.{c,h})
+* Support (user-defined) patterns/globbing (ex: *.[ch])
+* Add colors for tty output!
