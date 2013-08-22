@@ -14,7 +14,7 @@ static void sigint_handler(int signum)
 	done = 1;
 }
 
-static uint32_t watch_mask = IN_ATTRIB | IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_MODIFY;
+static uint32_t watch_mask = IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_MODIFY;
 static void add_watch(int fd, const char *pathname)
 {
 	int wd;
