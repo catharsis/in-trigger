@@ -7,6 +7,9 @@
 #define NDEBUG
 #include "dbg.h"
 
+#define progress(EventName, M, ...) \
+	fprintf(stdout, "%sTrigger (%s)%s: " M "\n", CLR_GREEN, EventName, CLR_RESET, ##__VA_ARGS__)
+
 static int done;
 static const char * command;
 static void sigint_handler(int signum)
@@ -66,15 +69,15 @@ static void process_events(int fd)
 		check(len >= 0, "Invalid read from inotify instance");
 		event = (struct inotify_event * ) buffer;
 		if (should_trigger(event)) {
-			printf ("Trigger (%s): Executing command '%s'\n", event->name, command);
+			progress(event->name, "Executing command '%s'", command);
 			ret = system(command);
 			if (WIFSIGNALED(ret) &&
 					(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT)) {
-				printf("Trigger (%s): Interrupted by signal %d", event->name, WTERMSIG(ret));
+				progress(event->name, "Interrupted by signal %d", WTERMSIG(ret));
 				break;
 			}
 			check((-1 != ret), "Failed to execute command");
-			printf ("Trigger (%s): done.\n", event->name);
+			progress (event->name, "done.");
 
 		}
 	}
@@ -86,6 +89,7 @@ void print_usage()
 {
 	printf("Usage: in-trigger command\n");
 }
+
 int main (int argc, char **argv)
 {
 	int inotify_fd, wd;

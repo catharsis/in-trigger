@@ -5,6 +5,9 @@
 #include <errno.h>
 #include <string.h>
 
+#define CLR_RESET          "\033[m"
+#define CLR_GREEN          "\033[32m"
+
 #ifdef NDEBUG
 #define debug(M, ...)
 #else
