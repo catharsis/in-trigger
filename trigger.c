@@ -84,7 +84,7 @@ error:
 
 void print_usage()
 {
-	printf("Usage: blah blah\n");
+	printf("Usage: in-trigger command\n");
 }
 int main (int argc, char **argv)
 {
