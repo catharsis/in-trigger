@@ -4,9 +4,10 @@
 #include <limits.h>
 #include <sys/inotify.h>
 #include <fnmatch.h>
-#define NDEBUG
 #include "dbg.h"
+#include <assert.h>
 
+#define NDEBUG
 #define progress(EventName, M, ...) \
 	fprintf(stdout, "%sTrigger (%s)%s: " M "\n", CLR_GREEN, EventName, CLR_RESET, ##__VA_ARGS__)
 
@@ -17,7 +18,8 @@ static void sigint_handler(int signum)
 	done = 1;
 }
 
-static uint32_t watch_mask = IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_MODIFY;
+#define WATCH_MASK IN_MODIFY
+static uint32_t watch_mask = WATCH_MASK;
 static void add_watch(int fd, const char *pathname)
 {
 	int wd;
@@ -55,6 +57,27 @@ static int should_trigger(struct inotify_event *event)
 	return 0;
 
 }
+
+static const char * mask2str(int event_mask)
+{
+	if( IN_ACCESS & event_mask ) return "IN_ACCESS";
+	else if( IN_ATTRIB & event_mask ) return "IN_ATTRIB";
+	else if( IN_CLOSE_WRITE & event_mask ) return "IN_CLOSE_WRITE";
+	else if( IN_CLOSE_NOWRITE & event_mask ) return "IN_CLOSE_NOWRITE";
+	else if( IN_CREATE & event_mask ) return "IN_CREATE";
+	else if( IN_DELETE & event_mask ) return "IN_DELETE";
+	else if( IN_DELETE_SELF & event_mask ) return "IN_DELETE_SELF";
+	else if ( IN_MODIFY & event_mask) return "IN_MODIFY";
+	else if( IN_MOVE_SELF & event_mask ) return "IN_MOVE_SELF";
+	else if( IN_MOVED_FROM & event_mask ) return "IN_MOVED_FROM";
+	else if( IN_MOVED_TO & event_mask ) return "IN_MOVED_TO";
+	else if( IN_OPEN & event_mask ) return "IN_OPEN";
+	else {
+		log_err("Unknown event in event_mask %d", event_mask);
+		assert(!"Unknown event in event_mask");
+	}
+}
+
 static void process_events(int fd)
 {
 	struct inotify_event *event;
@@ -69,6 +92,7 @@ static void process_events(int fd)
 		check(len >= 0, "Invalid read from inotify instance");
 		event = (struct inotify_event * ) buffer;
 		if (should_trigger(event)) {
+			debug("Triggering on event %s", mask2str(event->mask));
 			progress(event->name, "Executing command '%s'", command);
 			ret = system(command);
 			if (WIFSIGNALED(ret) &&
