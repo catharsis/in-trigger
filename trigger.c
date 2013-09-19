@@ -41,10 +41,10 @@ error:
 }
 
 
-static int should_trigger(struct inotify_event *event)
+static int should_trigger(struct inotify_event *event, const char *pattern)
 {
 	if ( event->len ) {
-		if (!fnmatch("*.[ch]", event->name, FNM_PATHNAME)) {
+		if (!fnmatch(pattern, event->name, FNM_PATHNAME)) {
 			return 1;
 		}
 		else {
@@ -78,7 +78,7 @@ static const char * mask2str(int event_mask)
 	}
 }
 
-static void process_events(int fd)
+static void process_events(int fd, const char * pattern)
 {
 	struct inotify_event *event;
 	int ret, len, bufsize = sizeof(event) + NAME_MAX + 1;
@@ -91,7 +91,7 @@ static void process_events(int fd)
 		signal(SIGINT, sigint_handler);
 		check(len >= 0, "Invalid read from inotify instance");
 		event = (struct inotify_event * ) buffer;
-		if (should_trigger(event)) {
+		if (should_trigger(event, pattern)) {
 			debug("Triggering on event %s", mask2str(event->mask));
 			progress(event->name, "Executing command '%s'", command);
 			ret = system(command);
@@ -111,22 +111,25 @@ error:
 
 void print_usage()
 {
-	printf("Usage: in-trigger command\n");
+	printf("Usage: in-trigger command [pattern]\n");
 }
 
 int main (int argc, char **argv)
 {
 	int inotify_fd, wd;
-	char *path;
+	char *path = NULL;
+	char *pattern = "*.[ch]";
 	path = getcwd(NULL, 0);
 	check(path, "Failed to get current working directory");
-	check(argc == 2, "Wrong number of arguments");
+	check((argc > 1 && argc < 4), "Wrong number of arguments");
 	check_mem(command = strdup(argv[1]));
+	if (argc == 3)
+		check_mem(pattern = strdup(argv[2]));
 	inotify_fd = open_inotify_fd();
 	log_info("Inotify instance initialized ...");
 	add_watch(inotify_fd, path);
 	log_info("Watch added for '%s' ...", path);
-	process_events(inotify_fd);
+	process_events(inotify_fd, (const char *) pattern);
 	log_info("Stopped watching '%s' ...", path);
 	return 0;
 error:

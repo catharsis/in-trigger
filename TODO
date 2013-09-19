@@ -1,2 +1,1 @@
 * Support recursive watches (track watch descriptors)
-* Support (user-defined) patterns/globbing (ex: *.[ch])
