@@ -44,7 +44,7 @@ error:
 static int should_trigger(struct inotify_event *event, const char *pattern)
 {
 	if ( event->len ) {
-		if (!fnmatch(pattern, event->name, FNM_PATHNAME)) {
+		if ( !pattern || !fnmatch(pattern, event->name, FNM_PATHNAME)) {
 			return 1;
 		}
 		else {
@@ -109,6 +109,7 @@ error:
 	log_info("Terminating ...");
 }
 
+
 void print_usage()
 {
 	printf("Usage: in-trigger command [pattern]\n");
@@ -118,10 +119,14 @@ int main (int argc, char **argv)
 {
 	int inotify_fd, wd;
 	char *path = NULL;
-	char *pattern = "*.[ch]";
+	char *pattern = NULL;
 	path = getcwd(NULL, 0);
 	check(path, "Failed to get current working directory");
 	check((argc > 1 && argc < 4), "Wrong number of arguments");
+	if (strcmp(argv[1], "-h") == 0) {
+		print_usage();
+		exit(0);
+	}
 	check_mem(command = strdup(argv[1]));
 	if (argc == 3)
 		check_mem(pattern = strdup(argv[2]));
