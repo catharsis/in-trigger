@@ -7,7 +7,7 @@
 #include "dbg.h"
 #include <assert.h>
 
-#define NDEBUG
+#undef NDEBUG
 #define progress(EventName, M, ...) \
 	fprintf(stdout, "%sTrigger (%s)%s: " M "\n", CLR_GREEN, EventName, CLR_RESET, ##__VA_ARGS__)
 
