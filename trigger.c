@@ -60,6 +60,7 @@ static int should_trigger(struct inotify_event *event, const char *pattern)
 
 static const char * mask2str(int event_mask)
 {
+	/* FIXME: Handle events with multiple event types */
 	if( IN_ACCESS & event_mask ) return "IN_ACCESS";
 	else if( IN_ATTRIB & event_mask ) return "IN_ATTRIB";
 	else if( IN_CLOSE_WRITE & event_mask ) return "IN_CLOSE_WRITE";
@@ -67,7 +68,7 @@ static const char * mask2str(int event_mask)
 	else if( IN_CREATE & event_mask ) return "IN_CREATE";
 	else if( IN_DELETE & event_mask ) return "IN_DELETE";
 	else if( IN_DELETE_SELF & event_mask ) return "IN_DELETE_SELF";
-	else if ( IN_MODIFY & event_mask) return "IN_MODIFY";
+	else if( IN_MODIFY & event_mask) return "IN_MODIFY";
 	else if( IN_MOVE_SELF & event_mask ) return "IN_MOVE_SELF";
 	else if( IN_MOVED_FROM & event_mask ) return "IN_MOVED_FROM";
 	else if( IN_MOVED_TO & event_mask ) return "IN_MOVED_TO";
