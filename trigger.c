@@ -1,3 +1,4 @@
+#include <libgen.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
@@ -110,6 +111,43 @@ error:
 	log_info("Terminating ...");
 }
 
+/*
+ * Determine the path for which to add a watch. If the pattern looks like
+ * a path, it probably is, in which case we use the dirname() of the pattern
+ * as the path and modify pattern accordingly with basename(). If it does not
+ * look like a path or if we don't have a pattern, we use the current working
+ * directory.
+ */
+static char * determine_watch_path(char **pattern)
+{
+	char *p = NULL;
+	char *dirc = NULL;
+	char *basec= NULL;
+	char *dname= NULL;
+	char *bname = NULL;
+	if (pattern != NULL && *pattern != NULL) {
+		check_mem(dirc= strdup(*pattern));
+		check_mem(basec= strdup(*pattern));
+		bname = basename(dirc);
+		dname = dirname(basec);
+		if (0 != strcmp(dname, ".")) {
+			check_mem(p = strdup(dname));
+			free(*pattern);
+			check_mem(*pattern = strdup(bname));
+		}
+		free(dirc);
+		free(basec);
+	}
+	if (p == NULL) {
+		if ((p = getcwd(p, 0)) == NULL ) {
+			log_err("Failed to get current working directory: %s", strerror(errno));
+			return NULL;
+		}
+	}
+	return p;
+error:
+	return NULL;
+}
 
 static void print_usage()
 {
@@ -121,8 +159,7 @@ int main (int argc, char **argv)
 	int inotify_fd, wd;
 	char *path = NULL;
 	char *pattern = NULL;
-	path = getcwd(NULL, 0);
-	check(path, "Failed to get current working directory");
+
 	check((argc > 1 && argc < 4), "Wrong number of arguments");
 	if (strcmp(argv[1], "-h") == 0) {
 		print_usage();
@@ -131,12 +168,18 @@ int main (int argc, char **argv)
 	check_mem(command = strdup(argv[1]));
 	if (argc == 3)
 		check_mem(pattern = strdup(argv[2]));
+
+	path = determine_watch_path(&pattern);
+	check(path, "Failed to determine directory to watch");
 	inotify_fd = open_inotify_fd();
 	log_info("Inotify instance initialized ...");
 	add_watch(inotify_fd, path);
-	log_info("Watch added for '%s' ...", path);
+	log_info("Watch pattern '%s' added for '%s' ...", pattern, path);
 	process_events(inotify_fd, (const char *) pattern);
 	log_info("Stopped watching '%s' ...", path);
+	free(command);
+	free(path);
+	free(pattern);
 	return 0;
 error:
 	print_usage();
