@@ -12,7 +12,7 @@
 	fprintf(stdout, "%sTrigger (%s)%s: " M "\n", CLR_GREEN, EventName, CLR_RESET, ##__VA_ARGS__)
 
 static int done;
-static const char * command;
+static char * command;
 static void sigint_handler(int signum)
 {
 	done = 1;
