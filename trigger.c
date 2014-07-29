@@ -110,7 +110,7 @@ error:
 }
 
 
-void print_usage()
+static void print_usage()
 {
 	printf("Usage: in-trigger command [pattern]\n");
 }
